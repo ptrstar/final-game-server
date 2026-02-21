@@ -1,4 +1,4 @@
-const socket = new WebSocket(`ws://${src}/ws?type=${game_type}&room=ANY`);
+const socket = new WebSocket(`${wsHost}/ws?type=${gameType}&room=ANY`);
 socket.binaryType = "arraybuffer";
 
 class Game {
@@ -8,7 +8,6 @@ class Game {
         this.uiLayer = document.getElementById('game-ui')
         this.ctx = this.canvas.getContext("2d");
 
-        
         console.log("Starting Client Game");
 
         window.addEventListener('resize', this.upscaleCanvas);
