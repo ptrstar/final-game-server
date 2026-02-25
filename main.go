@@ -7,6 +7,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type ClientRequest struct {
+	w     http.ResponseWriter
+	r     http.Request
+	gType string
+	rID   string
+	hInfo string
+	conn  *websocket.Conn
+}
+
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
@@ -42,25 +51,28 @@ func main() {
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		gType := r.URL.Query().Get("type")
 		rID := r.URL.Query().Get("room")
-		if gType == "" || rID == "" {
-			return
-		}
+		h := r.URL.Query().Get("hub")
 
-		room := hub.GetOrCreateRoom(gType, rID)
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
 		}
 
-		client := &Client{Conn: conn, Send: make(chan []byte, 256), Room: room}
-		room.Join <- client
-
-		go client.WritePump()
-		client.ReadPump()
+		clientRequest := &ClientRequest{
+			w:     w,
+			r:     *r,
+			gType: gType,
+			rID:   rID,
+			hInfo: h,
+			conn:  conn,
+		}
+		hub.Join <- clientRequest
 	})
 
 	wrappedMux := enableCORS(mux)
 
 	log.Println("Server running on :8080")
 	http.ListenAndServe(":8080", wrappedMux)
+
+	hub.Run()
 }

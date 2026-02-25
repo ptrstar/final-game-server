@@ -6,10 +6,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type PlayerInterface interface {
+	ReadPump()
+	WritePump()
+	PutMessage(msg []byte)
+}
+
 type Client struct {
+	ID string
+
 	Conn *websocket.Conn
 	Send chan []byte
 	Room *Room
+}
+
+func NewClient(conn *websocket.Conn, room *Room) *Client {
+	return &Client{Conn: conn, Send: make(chan []byte, 256), Room: room}
 }
 
 func (c *Client) ReadPump() {
@@ -23,7 +35,7 @@ func (c *Client) ReadPump() {
 			break
 		}
 		// Pass irregular client updates to the room's input channel
-		c.Room.Input <- ClientInput{Client: c, Data: message}
+		c.Room.Input <- ClientInput{Player: c, Data: message}
 	}
 }
 
@@ -33,5 +45,14 @@ func (c *Client) WritePump() {
 			log.Println("Write error:", err)
 			return
 		}
+	}
+}
+
+// called by roomthread
+func (c *Client) PutMessage(msg []byte) {
+	select {
+	case c.Send <- msg:
+	default:
+		// optional: drop message if buffer is full to prevent hanging the room
 	}
 }
