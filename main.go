@@ -1,20 +1,12 @@
 package main
 
 import (
+	"final-game-server/internal/shared"
 	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
 )
-
-type ClientRequest struct {
-	w     http.ResponseWriter
-	r     http.Request
-	gType string
-	rID   string
-	hInfo string
-	conn  *websocket.Conn
-}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -50,23 +42,21 @@ func main() {
 
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		gType := r.URL.Query().Get("type")
-		rID := r.URL.Query().Get("room")
-		h := r.URL.Query().Get("hub")
+		rID := r.URL.Query().Get("id")
 
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			return
 		}
 
-		clientRequest := &ClientRequest{
-			w:     w,
-			r:     *r,
-			gType: gType,
-			rID:   rID,
-			hInfo: h,
-			conn:  conn,
+		cr := &shared.ClientRequest{
+			W:     w,
+			R:     *r,
+			GType: gType,
+			RID:   rID,
+			Conn:  conn,
 		}
-		hub.Join <- clientRequest
+		hub.Join <- cr
 	})
 
 	wrappedMux := enableCORS(mux)
