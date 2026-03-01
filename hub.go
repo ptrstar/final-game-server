@@ -88,7 +88,7 @@ func (h *Hub) ConnectClientToRoom(client *engine.Client, cr *shared.ClientReques
 func (h *Hub) CreateRoom(GType string, Id string) *engine.Room {
 	if GType == "paint" {
 		room := engine.NewRoom(Id, GType, 4)
-		room.Game = paint.NewPaintGame()
+		room.Game = paint.NewPaintGame(room)
 		return room
 	}
 	panic("Unable to find Roomconstructor")
