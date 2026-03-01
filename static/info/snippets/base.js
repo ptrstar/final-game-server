@@ -12,7 +12,11 @@ window.__GAMEHTML__ = `
                 Connected
             </div>
         </header>
-        
+        <button
+            onclick="game_injector('paint','')"
+            class="p-2 mb-2 py-2.5 rounded-xl font-bold text-sm transition-all bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-900/20">
+            Paint
+        </button>
         <div id="game-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Cards will be injected here -->
         </div>

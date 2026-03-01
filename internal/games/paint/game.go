@@ -4,14 +4,18 @@ import (
 	"final-game-server/internal/engine"
 	"final-game-server/internal/shared"
 	"sync"
+	"time"
 )
 
 type PaintGame struct {
 	Room    *engine.Room
 	Join    chan *engine.Client
 	Leave   chan *engine.Client
+	Input   chan *PlayerInput
 	Players map[*engine.Client]*Player
 	mu      sync.Mutex
+
+	boundry *shared.Vec2
 }
 
 func NewPaintGame(Room *engine.Room) *PaintGame {
@@ -21,12 +25,15 @@ func NewPaintGame(Room *engine.Room) *PaintGame {
 		Leave:   make(chan *engine.Client),
 		Players: make(map[*engine.Client]*Player),
 		mu:      sync.Mutex{},
+
+		boundry: &shared.Vec2{X: 16, Y: 16},
 	}
 	go game.Run()
 	return game
 }
 
 func (g *PaintGame) Run() {
+	ticker := time.NewTicker(16 * time.Millisecond)
 
 	for {
 		select {
@@ -36,9 +43,10 @@ func (g *PaintGame) Run() {
 				Id: client.Id,
 			}
 			g.mu.Unlock()
+		case <-ticker.C:
+			g.Update()
 		}
 	}
-
 }
 
 func (g *PaintGame) AddPlayer(client *engine.Client) {
@@ -52,8 +60,8 @@ func (g *PaintGame) RemovePlayer(client *engine.Client) {
 
 	delete(g.Players, client)
 }
-func (g *PaintGame) HandleInput(client *engine.Client, data *engine.ClientInput) {
-
+func (g *PaintGame) HandleInput(client *engine.Client, data []byte) {
+	// TODO: get the data in from the clients, also implement browserclient logic to send data, then implement browserclient renderstuff and play
 }
 func (g *PaintGame) Update() {
 

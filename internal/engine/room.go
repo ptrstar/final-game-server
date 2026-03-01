@@ -16,7 +16,7 @@ type Room struct {
 	Input       chan *ClientInput
 	Game        GameItf
 	CreatedAt   time.Time
-	UpdateCycle [2]int
+	UpdateCycle int
 
 	Capacity int
 	nextId   int
@@ -32,7 +32,7 @@ func NewRoom(Id string, Type string, Capacity int) *Room {
 		Leave:       make(chan *Client),
 		Input:       make(chan *ClientInput),
 		CreatedAt:   time.Now(),
-		UpdateCycle: [2]int{1000, 1000}, // TODO: make this updateable trhough the game instance in a way where it has affect ofc
+		UpdateCycle: 1000,
 
 		Capacity: Capacity,
 		nextId:   0,
@@ -44,18 +44,17 @@ func NewRoom(Id string, Type string, Capacity int) *Room {
 }
 
 func (r *Room) Run() {
-	updateTicker := time.NewTicker(time.Duration(r.UpdateCycle[0]) * time.Millisecond)
-	broadcastTicker := time.NewTicker(time.Duration(r.UpdateCycle[1]) * time.Millisecond)
+	broadcastTicker := time.NewTicker(time.Duration(r.UpdateCycle) * time.Millisecond)
 
 	for {
 		select {
 		case <-broadcastTicker.C:
 			state := r.Game.SerializeState()
 			r.Broadcast(state)
-		case <-updateTicker.C:
-
 		case client := <-r.Leave:
 			r.RemoveClient(client)
+		case input := <-r.Input:
+			r.Game.HandleInput(input.Client, input.Data)
 		}
 	}
 }

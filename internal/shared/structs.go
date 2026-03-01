@@ -25,3 +25,13 @@ type ShareableGameState struct {
 	CreatedAt   time.Time `json:"created_at"`
 	Custom      []byte    `json:"custom"` // See note below on []byte
 }
+
+type Vec2 struct {
+	X float32
+	Y float32
+}
+type Col struct {
+	R uint8
+	G uint8
+	B uint8
+}
