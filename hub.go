@@ -33,7 +33,7 @@ func NewHub() *Hub {
 	}
 
 	hub.Rooms["info"] = make(map[string]*engine.Room)
-	room, _ := engine.NewRoom("all", "info", 128)
+	room := engine.NewRoom("all", "info", 128)
 	room.Game = info.NewInfo(room)
 	hub.Rooms["info"]["all"] = room
 
@@ -49,10 +49,10 @@ func (h *Hub) ConnectClientToRoom(client *engine.Client, cr *shared.ClientReques
 		if room.AddClient(client) != nil {
 			log.Println("Unable to add client to info room")
 		}
-		return
+		return nil
 	}
 
-	_, ok := validGameTypes[Type]
+	_, ok := validGameTypes[cr.GType]
 	if !ok {
 		return errors.New("Invalid RoomType")
 	}
@@ -83,6 +83,7 @@ func (h *Hub) ConnectClientToRoom(client *engine.Client, cr *shared.ClientReques
 			room.AddClient(client)
 		}
 	}
+	return nil
 }
 
 func (h *Hub) CreateRoom(GType string, Id string) *engine.Room {
