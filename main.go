@@ -18,12 +18,14 @@ var upgrader = websocket.Upgrader{
 
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow its.. to fetch data
-		w.Header().Set("Access-Control-Allow-Origin", "https://its.trojanos.ch")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 
-		// Handle browser pre-flight requests
+		// Only force the JS content-type if the URL actually ends in .js
+		if len(r.URL.Path) >= 3 && r.URL.Path[len(r.URL.Path)-3:] == ".js" {
+			w.Header().Set("Content-Type", "application/javascript")
+		}
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -51,18 +53,20 @@ func main() {
 
 		cr := &shared.ClientRequest{
 			W:     w,
-			R:     *r,
+			R:     r,
 			GType: gType,
 			RID:   rID,
 			Conn:  conn,
 		}
+
 		hub.Join <- cr
 	})
 
 	wrappedMux := enableCORS(mux)
 
+	go hub.Run()
+
 	log.Println("Server running on :8080")
 	http.ListenAndServe(":8080", wrappedMux)
 
-	hub.Run()
 }

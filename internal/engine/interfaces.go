@@ -1,11 +1,13 @@
 package engine
 
+import "final-game-server/internal/shared"
+
 type GameItf interface {
 	Run()
-	Broadcast([]byte)
-	AddPlayer(Client) error
-	RemovePlayer(Client)
-	HandleInput(Client, []byte)
+	AddPlayer(*Client)
+	RemovePlayer(*Client)
+	HandleInput(*Client, *ClientInput)
 	Update()
-	SerializeState()
+	SerializeState() []byte
+	GetShareableGameState() *shared.ShareableGameState
 }

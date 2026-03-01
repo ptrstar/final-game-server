@@ -12,13 +12,14 @@ type ClientInput struct {
 }
 
 type Client struct {
+	Id   int
 	Conn *websocket.Conn
 	Send chan []byte
 	Room *Room
 }
 
-func NewClient(conn *websocket.Conn) *Client {
-	return &Client{Conn: conn, Send: make(chan []byte, 256)}
+func NewClient(id int, conn *websocket.Conn) *Client {
+	return &Client{Id: id, Conn: conn, Send: make(chan []byte, 256)}
 }
 
 func (c *Client) SetRoom(room *Room) {

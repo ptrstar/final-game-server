@@ -2,40 +2,37 @@ package engine
 
 import (
 	"errors"
+	"log"
 	"sync"
+	"time"
 )
 
-var validGameTypes = map[string]struct{}{
-	"info": {},
-}
-
 type Room struct {
-	mu      sync.RWMutex
-	Id      string
-	Type    string
-	Clients map[*Client]*Client
-	Leave   chan *Client
-	Input   chan *ClientInput
-	Game    GameItf
+	mu          sync.RWMutex
+	Id          string
+	Type        string
+	Clients     map[*Client]*Client
+	Leave       chan *Client
+	Input       chan *ClientInput
+	Game        GameItf
+	CreatedAt   time.Time
+	UpdateCycle [2]int
 
 	Capacity int
 	nextId   int
 }
 
-func NewRoom(Id string, Type string, Capacity int) (*Room, error) {
-
-	_, ok := validGameTypes[Type]
-	if !ok {
-		return nil, errors.New("Invalid RoomType")
-	}
+func NewRoom(Id string, Type string, Capacity int) *Room {
 
 	room := &Room{
-		mu:      sync.RWMutex{},
-		Id:      Id,
-		Type:    Type,
-		Clients: make(map[*Client]*Client),
-		Leave:   make(chan *Client),
-		Input:   make(chan *ClientInput, 0),
+		mu:          sync.RWMutex{},
+		Id:          Id,
+		Type:        Type,
+		Clients:     make(map[*Client]*Client),
+		Leave:       make(chan *Client),
+		Input:       make(chan *ClientInput),
+		CreatedAt:   time.Now(),
+		UpdateCycle: [2]int{1000, 1000}, // TODO: make this updateable trhough the game instance in a way where it has affect ofc
 
 		Capacity: Capacity,
 		nextId:   0,
@@ -43,22 +40,57 @@ func NewRoom(Id string, Type string, Capacity int) (*Room, error) {
 
 	go room.Run()
 
-	return room, nil
+	return room
 }
 
-func (r *Room) Run()                  {}
-func (r *Room) Broadcast(data []byte) {}
+func (r *Room) Run() {
+	updateTicker := time.NewTicker(time.Duration(r.UpdateCycle[0]) * time.Millisecond)
+	broadcastTicker := time.NewTicker(time.Duration(r.UpdateCycle[1]) * time.Millisecond)
+
+	for {
+		select {
+		case <-broadcastTicker.C:
+			state := r.Game.SerializeState()
+			r.Broadcast(state)
+		case <-updateTicker.C:
+
+		case client := <-r.Leave:
+			r.RemoveClient(client)
+		}
+	}
+}
+func (r *Room) Broadcast(data []byte) {
+	for p := range r.Clients {
+		p.PutMessage(data)
+	}
+}
 func (r *Room) AddClient(client *Client) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	if len(r.Clients) >= r.Capacity {
+		return errors.New("Room is full")
+	}
+
 	r.Clients[client] = client
 	client.SetRoom(r)
+	r.Game.AddPlayer(client)
 
 	go client.WritePump()
 	go client.ReadPump()
 
+	log.Printf("Client %d connected to Room[\"%s\"][\"%s\"]\n", client.Id, r.Type, r.Id)
+
 	return nil
 }
-func (r *Room) RemoveClient(client *Client)              {}
+func (r *Room) RemoveClient(client *Client) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.Game.RemovePlayer(client)
+
+	log.Printf("Client %d disconnected from Room[\"%s\"][\"%s\"]\n", client.Id, r.Type, r.Id)
+
+	delete(r.Clients, client)
+}
 func (r *Room) HandleInput(client *Client, input []byte) {}

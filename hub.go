@@ -1,86 +1,107 @@
 package main
 
 import (
+	"errors"
 	"final-game-server/internal/engine"
 	"final-game-server/internal/games/info"
+	"final-game-server/internal/games/paint"
 	"final-game-server/internal/shared"
 	"log"
-	"sync"
 	"time"
+
+	"github.com/google/uuid"
 )
+
+var validGameTypes = map[string]struct{}{
+	"info":  {},
+	"paint": {},
+}
 
 type Hub struct {
 	Rooms map[string]map[string]*engine.Room
 	Join  chan *shared.ClientRequest
-	mu    sync.Mutex
+	// mu     sync.Mutex
+	nextId int
 }
 
 func NewHub() *Hub {
 	hub := &Hub{
 		Rooms: make(map[string]map[string]*engine.Room),
 		Join:  make(chan *shared.ClientRequest),
-		mu:    sync.Mutex{},
+		// mu:     sync.Mutex{},
+		nextId: 0,
 	}
 
 	hub.Rooms["info"] = make(map[string]*engine.Room)
-	room, _ := engine.NewRoom("All", "info", 1000)
-	room.Game = info.NewInfo()
-	hub.Rooms["info"]["All"] = room
+	room, _ := engine.NewRoom("all", "info", 128)
+	room.Game = info.NewInfo(room)
+	hub.Rooms["info"]["all"] = room
 
 	return hub
 }
 
-func (h *Hub) ConnectClientToRoom(client *engine.Client, cr *shared.ClientRequest) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+func (h *Hub) ConnectClientToRoom(client *engine.Client, cr *shared.ClientRequest) error {
+	// h.mu.Lock()
+	// defer h.mu.Unlock()
 
-	if cr.GType == "Info" {
-		room := h.Rooms["Info"]["ALL"]
+	if cr.GType == "info" {
+		room := h.Rooms["info"]["all"]
 		if room.AddClient(client) != nil {
 			log.Println("Unable to add client to info room")
 		}
+		return
 	}
 
-	// if h.Games[gameType] == nil {
-	// 	h.Games[gameType] = make(map[string]*Room)
-	// }
+	_, ok := validGameTypes[Type]
+	if !ok {
+		return errors.New("Invalid RoomType")
+	}
 
-	// room, exists := h.Games[gameType][roomID]
-	// if (!exists) || (len(room.Clients) >= room.Game.MaxPlayers) {
-	// 	foundRoom := false
-	// 	for _, existingRoom := range h.Games[gameType] {
-	// 		if existingRoom.AddPlayer(client) {
-	// 			room = existingRoom
-	// 			roomID = existingRoom.ID
-	// 			foundRoom = true
-	// 			break
-	// 		}
-	// 	}
-	// 	if !foundRoom {
-	// 		if exists {
-	// 			roomID = uuid.NewString()
-	// 		}
-	// 		room = NewRoom(roomID, gameType)
-	// 		h.Games[gameType][roomID] = room
-	// 		go room.Run()
-	// 	}
-	// }
-	// // return room
+	if h.Rooms[cr.GType] == nil {
+		h.Rooms[cr.GType] = make(map[string]*engine.Room)
+	}
+
+	room, exists := h.Rooms[cr.GType][cr.RID]
+	var roomId string
+	if (!exists) || (len(room.Clients) >= room.Capacity) {
+		foundRoom := false
+		for _, existingRoom := range h.Rooms[cr.GType] {
+			if existingRoom.AddClient(client) != nil {
+				room = existingRoom
+				roomId = room.Id
+				foundRoom = true
+				break
+			}
+		}
+		if !foundRoom {
+			if exists {
+				roomId = uuid.NewString()
+			}
+			room = h.CreateRoom(cr.GType, roomId)
+			h.Rooms[cr.GType][roomId] = room
+
+			room.AddClient(client)
+		}
+	}
+}
+
+func (h *Hub) CreateRoom(GType string, Id string) *engine.Room {
+	if GType == "paint" {
+		room := engine.NewRoom(Id, GType, 4)
+		room.Game = paint.NewPaintGame()
+		return room
+	}
+	panic("Unable to find Roomconstructor")
 }
 
 func (h *Hub) Run() {
-	broadcastTicker := time.NewTicker(50 * time.Millisecond)
+	hubTicker := time.NewTicker(1000 * time.Millisecond)
 
 	for {
 		select {
 		case cr := <-h.Join:
 
-			conn, err := upgrader.Upgrade(cr.W, &cr.R, nil)
-			if err != nil {
-				return
-			}
-
-			client := engine.NewClient(conn)
+			client := engine.NewClient(h.getNextId(), cr.Conn)
 
 			h.ConnectClientToRoom(client, cr)
 
@@ -123,9 +144,22 @@ func (h *Hub) Run() {
 			// 		// go client.WritePump()
 			// 		// client.ReadPump()
 
-		case <-broadcastTicker.C:
-
+		case <-hubTicker.C:
+			GSList := make([]*shared.ShareableGameState, 0)
+			for Type := range h.Rooms {
+				for _, room := range h.Rooms[Type] {
+					GSList = append(GSList, room.Game.GetShareableGameState())
+				}
+			}
+			if infoGame, ok := h.Rooms["info"]["all"].Game.(*info.Info); ok {
+				infoGame.SetGSList(GSList)
+			}
 		}
 
 	}
+}
+
+func (h *Hub) getNextId() int {
+	h.nextId++
+	return h.nextId
 }
