@@ -6,7 +6,7 @@ type GameItf interface {
 	Run()
 	AddPlayer(*Client)
 	RemovePlayer(*Client)
-	HandleInput(*Client, *ClientInput)
+	HandleInput(*ClientInput)
 	Update()
 	SerializeState() []byte
 	GetShareableGameState() *shared.ShareableGameState

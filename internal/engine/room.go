@@ -54,7 +54,7 @@ func (r *Room) Run() {
 		case client := <-r.Leave:
 			r.RemoveClient(client)
 		case input := <-r.Input:
-			r.Game.HandleInput(input.Client, input.Data)
+			r.Game.HandleInput(input)
 		}
 	}
 }

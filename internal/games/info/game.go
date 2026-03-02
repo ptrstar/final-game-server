@@ -63,7 +63,7 @@ func (g *Info) RemovePlayer(client *engine.Client) {
 
 	delete(g.Players, client)
 }
-func (g *Info) HandleInput(client *engine.Client, data *engine.ClientInput) {
+func (g *Info) HandleInput(input *engine.ClientInput) {
 
 }
 func (g *Info) Update() {

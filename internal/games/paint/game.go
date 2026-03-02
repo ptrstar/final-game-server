@@ -11,7 +11,7 @@ type PaintGame struct {
 	Room    *engine.Room
 	Join    chan *engine.Client
 	Leave   chan *engine.Client
-	Input   chan *PlayerInput
+	Input   chan *engine.ClientInput
 	Players map[*engine.Client]*Player
 	mu      sync.Mutex
 
@@ -60,7 +60,7 @@ func (g *PaintGame) RemovePlayer(client *engine.Client) {
 
 	delete(g.Players, client)
 }
-func (g *PaintGame) HandleInput(client *engine.Client, data []byte) {
+func (g *PaintGame) HandleInput(input *engine.ClientInput) {
 	// TODO: get the data in from the clients, also implement browserclient logic to send data, then implement browserclient renderstuff and play
 }
 func (g *PaintGame) Update() {
