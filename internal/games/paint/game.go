@@ -3,6 +3,7 @@ package paint
 import (
 	"final-game-server/internal/engine"
 	"final-game-server/internal/shared"
+	"math/rand/v2"
 	"sync"
 	"time"
 )
@@ -40,7 +41,12 @@ func (g *PaintGame) Run() {
 		case client := <-g.Join:
 			g.mu.Lock()
 			g.Players[client] = &Player{
-				Id: client.Id,
+				Id:       client.Id,
+				Pos:      &shared.Vec2{X: 8, Y: 8},
+				PosVel:   &shared.Vec2{0, 0},
+				Angle:    0,
+				AngleVel: 0,
+				Color:    &shared.Col{R: uint8(rand.Uint32N(256)), G: uint8(rand.Uint32N(256)), B: uint8(rand.Uint32N(256))},
 			}
 			g.mu.Unlock()
 		case <-ticker.C:
@@ -61,7 +67,20 @@ func (g *PaintGame) RemovePlayer(client *engine.Client) {
 	delete(g.Players, client)
 }
 func (g *PaintGame) HandleInput(input *engine.ClientInput) {
-	// TODO: get the data in from the clients, also implement browserclient logic to send data, then implement browserclient renderstuff and play
+	if len(input.Data) == 0 {
+		return
+	}
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	p, ok := g.Players[input.Client]
+	if !ok {
+		return
+	}
+
+	key := input.Data[0] >> 1
+	var value bool = (input.Data[0] & 0b01) != 0
+
+	p.Keyboard[key] = value
 }
 func (g *PaintGame) Update() {
 
