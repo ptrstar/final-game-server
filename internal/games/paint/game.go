@@ -47,6 +47,7 @@ func (g *PaintGame) Run() {
 				Angle:    0,
 				AngleVel: 0,
 				Color:    &shared.Col{R: uint8(rand.Uint32N(256)), G: uint8(rand.Uint32N(256)), B: uint8(rand.Uint32N(256))},
+				Keyboard: make(map[byte]bool),
 			}
 			g.mu.Unlock()
 		case <-ticker.C:
