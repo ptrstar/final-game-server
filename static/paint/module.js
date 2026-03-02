@@ -4,7 +4,7 @@ export function STARTGAME() {
     window.game = new PaintGame();
     // Assuming wsHost, gameType, and roomId are globally available from injector
     window.game.socket = new WebSocket(`${wsHost}/ws?type=${gameType}&room=${roomId}`);
-    window.game.socket.onmessage = (e) => window.game.handleUpdate(e);
+    window.game.socket.onmessage = window.game.handleUpdate.bind(window.game);
 
     console.log("Starting Game")
     window.addEventListener('keydown', window.game.keydown.bind(window.game))

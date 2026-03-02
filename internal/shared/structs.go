@@ -27,11 +27,11 @@ type ShareableGameState struct {
 }
 
 type Vec2 struct {
-	X float32
-	Y float32
+	X float32 `json:"x"`
+	Y float32 `json:"y"`
 }
 type Col struct {
-	R uint8
-	G uint8
-	B uint8
+	R uint8 `json:"r"`
+	G uint8 `json:"g"`
+	B uint8 `json:"b"`
 }

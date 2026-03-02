@@ -1,8 +1,10 @@
 package paint
 
 import (
+	"encoding/json"
 	"final-game-server/internal/engine"
 	"final-game-server/internal/shared"
+	"log"
 	"math/rand/v2"
 	"sync"
 	"time"
@@ -89,8 +91,17 @@ func (g *PaintGame) Update() {
 func (g *PaintGame) SerializeState() []byte {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	return []byte{}
 
+	playerList := make([]*Player, 0, len(g.Players))
+	for _, p := range g.Players {
+		playerList = append(playerList, p)
+	}
+	payload, err := json.Marshal(playerList)
+	if err != nil {
+		log.Printf("State serialization failed")
+		return []byte{}
+	}
+	return payload
 }
 
 func (g *PaintGame) GetShareableGameState() *shared.ShareableGameState {

@@ -1,3 +1,5 @@
+import Player from '/paint/player.js'
+
 export default class PaintGame {
     constructor() {
         this.canvas = document.getElementById("game-canvas");
@@ -39,14 +41,18 @@ export default class PaintGame {
         this.ctx.scale(dpi, dpi);
     }
 
-    handleUpdate(e) {
-        const data = JSON.parse(e.data);
-        // Map stats to the Overlay UI
-        if (data.PlayerCount !== undefined) {
-            document.getElementById('stat-players').innerText = data.PlayerCount;
-        }
-        if (data.Status) {
-            document.getElementById('stat-state').innerText = data.Status;
+    async handleUpdate(e) {
+        try {
+            const text = await e.data.text();
+            // TODO: do this in a sensible way
+            const players = JSON.parse(text)
+            this.players = []
+            players.forEach(p => {
+                this.players.push(new Player(p))
+            });
+            
+        } catch (e) {
+            console.error("Parse error", e);
         }
     }
 
